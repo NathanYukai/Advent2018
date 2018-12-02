@@ -1,16 +1,12 @@
 import qualified Data.Map as Map
 import Data.List (minimumBy, filter)
 import Data.Ord (compare)
+import Common
 
 countDup :: String -> Int -> Bool
 countDup s n = elem n dups
   where grouped = groupBy id s
         dups = fmap length $ Map.elems grouped
-
-getLines :: String -> IO [String]
-getLines fName = do
-  rawString <- readFile fName
-  return $ lines rawString
 
 process :: [String] -> (Int, Int)
 process ss= res
