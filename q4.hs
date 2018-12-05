@@ -98,8 +98,17 @@ answerTwo :: IO Schedule -> IO Int
 answerTwo io = do
   record <- io
   let allGuard = nub $ fmap fst $ Map.elems record
-      allSleepMost = fmap (\gId -> (gId, mostSleepMinute record gId)) allGuard
-      (g, time) = maximumBy (\(_, a) (_, b) -> compare a b) allSleepMost
+      allSleepMost = fmap (\gId -> (gId, mostSleepMinuteP2 record gId)) allGuard
+      (g, (time, _)) = maximumBy (\(_, (_,t)) (_, (_,t2)) -> compare t t2) allSleepMost
   putStrLn $ show allGuard
   return $ g*time
+
+
+mostSleepMinuteP2 :: Schedule -> Int -> (Int, Int)
+mostSleepMinuteP2 schedule guard = maximumBy (\(m, t) (m2, t2) -> compare t t2)
+                                 $ zip [0,1..] sleepTimeEachMin
+  where allGuardRecord = foldr (\(g, record) accu -> record : accu) [] $
+                         filter (\(g, _) -> g == guard) $ Map.elems schedule
+        transed = transpose allGuardRecord
+        sleepTimeEachMin = fmap (\row -> length $ filter (\n -> n==0) row) transed
 
