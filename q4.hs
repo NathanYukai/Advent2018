@@ -1,6 +1,7 @@
 import qualified Common as C
+import System.IO
 import qualified Data.Map as Map
-import Data.List(groupBy, isInfixOf, sortBy)
+import Data.List(groupBy, isInfixOf, sortBy, minimumBy, transpose, maximumBy, nub)
 import Data.Maybe(fromJust)
 
 main = putStrLn ""
@@ -24,12 +25,11 @@ getInts :: String -> [String]
 getInts str = groupBy (\a b -> elem a separator == elem b separator ) str
 
 getInfo :: String -> (Action, [Int])
-getInfo str = case actArr of
-                [True,_,_] -> (Sleep, schedule)
-                [False, True, _] -> (WakeUp, schedule)
-                [False, False, True] -> (Begin $ last schedule, init schedule)
+getInfo str = case str !! 19 of
+                'f' -> (Sleep, schedule)
+                'w' -> (WakeUp, schedule)
+                'G' -> (Begin $ last schedule, init schedule)
   where schedule = readSchedule str
-        actArr = fmap (\kw -> isInfixOf kw str) ["asleep", "wakes", "shift"]
 
 
 -- 1 as wake up
@@ -43,13 +43,12 @@ groupIntoMap (act, (y:mon:day:h:min:[])) sched = Map.update
                                               (\r -> (updateRecord act min r))
                                               (mon, day)
                                               sched
-  where record = sched Map.! (mon,day)
-        updateRecord Sleep start (g, record) = Just (g, (take start record) ++ (take (60-start) $ repeat 0))
-        updateRecord WakeUp start (g, record) = Just (g, (take start record) ++ (take (60-start) $ repeat 1))
-        updateRecord _ _ _ = Nothing
+  where
+        updateRecord Sleep start (g, recd) = Just (g, (take start recd) ++ (take (60-start) $ repeat 0))
+        updateRecord WakeUp start (g, recd) = Just (g, (take start recd) ++ (take (60-start) $ repeat 1))
 
 sortSchedule :: [(Action, [Int])] -> [(Action, [Int])]
-sortSchedule = sortBy (\(_,l) (_,r) -> mconcat $ zipWith compare (take 3 l) (take 3 r) )
+sortSchedule = sortBy (\(_,l) (_,r) -> mconcat $ zipWith compare l r )
 
 process :: String -> IO [(Action,[Int])]
 process fn = do
@@ -62,14 +61,45 @@ allSleepTime = foldr (\(g, re) accu -> Map.alter (altFunc (count re)) g accu) Ma
                      altFunc num Nothing = Just num
                      altFunc num (Just sth) = Just $ num+sth
 
-
-answer :: String -> IO String
-answer fn = do
+preprocess :: String -> IO Schedule
+preprocess fn = do
   schedulesRaw <- process fn
   let
     scheduleSorted = sortSchedule schedulesRaw
-    map = foldr groupIntoMap Map.empty scheduleSorted
+    record = foldl (flip groupIntoMap) Map.empty scheduleSorted
+  writeFile outputFile $ show record
+  return record
 
-  putStrLn $ show $ allSleepTime map
-  return "fjdskl"
+mostSleepMinute :: Schedule -> Int -> Int
+mostSleepMinute schedule guard = fst $ maximumBy (\(m, t) (m2, t2) -> compare t t2)
+                                 $ zip [0,1..] sleepTimeEachMin
+  where allGuardRecord = foldr (\(g, record) accu -> record : accu) [] $
+                         filter (\(g, _) -> g == guard) $ Map.elems schedule
+        transed = transpose allGuardRecord
+        sleepTimeEachMin = fmap (\row -> length $ filter (\n -> n==0) row) transed
+
+answer :: Schedule -> Int
+answer record = laziestGuard * (mostSleepMinute record laziestGuard)
+  where
+    alt = allSleepTime record
+    (laziestGuard, _) = maximumBy (\(g, sleepTime) (gr, str) -> compare sleepTime str) $ Map.toList alt
+
+
+outputFile :: String
+outputFile = "day4Temp"
+
+getScheduleFromFile :: IO Schedule
+getScheduleFromFile = do
+  str <- readFile outputFile
+  return (read str :: Schedule)
+
+--part 2
+answerTwo :: IO Schedule -> IO Int
+answerTwo io = do
+  record <- io
+  let allGuard = nub $ fmap fst $ Map.elems record
+      allSleepMost = fmap (\gId -> (gId, mostSleepMinute record gId)) allGuard
+      (g, time) = maximumBy (\(_, a) (_, b) -> compare a b) allSleepMost
+  putStrLn $ show allGuard
+  return $ g*time
 
