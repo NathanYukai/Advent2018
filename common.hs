@@ -2,6 +2,11 @@ module Common where
 
 import qualified Data.Map as Map
 
+insertAt :: [a] -> Int -> a -> [a]
+insertAt ns idx e = take idx ns ++ [e] ++ drop idx ns
+
+replaceAt :: [a] -> Int -> a -> [a]
+replaceAt ns idx e = take idx ns ++ [e] ++ drop (idx + 1) ns
 
 getLines :: String -> IO [String]
 getLines fName = do
