@@ -7,8 +7,6 @@ import Data.Maybe
 type Struct = (M.Map Int Int,D.Deque Int, Int, Int)
 -- (scores, marbles, index, curNum, curPlayer)
 
-
-
 process :: Struct -> Struct
 process (s,m,7082500,p) = (s,m,0,p)
 process (scores, marbles, marNum, p) =
