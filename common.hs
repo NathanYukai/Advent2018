@@ -8,6 +8,9 @@ insertAt ns idx e = take idx ns ++ [e] ++ drop idx ns
 replaceAt :: [a] -> Int -> a -> [a]
 replaceAt ns idx e = take idx ns ++ [e] ++ drop (idx + 1) ns
 
+removeAt :: [a] -> Int -> [a]
+removeAt ns idx = take idx ns ++ drop (idx+1) ns
+
 getLines :: String -> IO [String]
 getLines fName = do
   rawString <- readFile fName
